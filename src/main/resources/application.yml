@@ -1,0 +1,112 @@
+############################水平分库、分表#################################
+#服务名
+server:
+  port: 8080
+spring:
+  application:
+    name: yunyu-service
+  main:
+    allow-bean-definition-overriding: true
+  #shardingsphere相关配置
+  shardingsphere:
+    datasource:
+      names: ds0,m2,s1  #配置库的名字，随意
+      ds0:   #配置目前m1库的数据源信息
+        type: com.alibaba.druid.pool.DruidDataSource
+        driverClassName: com.mysql.cj.jdbc.Driver
+        url:  jdbc:mysql://192.168.0.41:3306/order_db?useUnicode=true
+        username: hanye
+        password: HanYe@123456
+      s1:   #配置目前m1库的数据源信息
+        type: com.alibaba.druid.pool.DruidDataSource
+        driverClassName: com.mysql.cj.jdbc.Driver
+        url:  jdbc:mysql://192.168.0.40:3306/order_db?useUnicode=true
+        username: hanye
+        password: HanYe@123456
+      m2:   #配置目前m1库的数据源信息
+        type: com.alibaba.druid.pool.DruidDataSource
+        driverClassName: com.mysql.cj.jdbc.Driver
+        url:  jdbc:mysql://192.168.0.42:3306/order_db?useUnicode=true
+        username: hanye
+        password: HanYe@123456
+
+    sharding:
+      tables:
+        t_order:
+          key-generator:
+            column: user_id
+            type: SNOWFLAKE
+          actual-data-nodes: m$->{1..2}.t_order_$->{1..2}   # 分库策略，以user_id为分片键，分片策略为user_id % 2 + 1，user_id为偶数操作m1数据源，否则操作m2。
+          database‐strategy:  #分库策略
+            inline:
+              sharding‐column: user_id
+              algorithm‐expression: m$->{user_id % 2 + 1}
+          table‐strategy: #分表策略
+            inline:
+              sharding‐column: order_id
+              algorithm‐expression: t_order_$->{order_id % 2 + 1}
+        t_order_item:
+          database‐strategy:  #分库策略
+            inline:
+              sharding‐column: user_id
+              algorithm‐expression: m$->{user_id % 2 + 1}
+          table‐strategy: #分表策略
+            inline:
+              sharding‐column: order_id
+              algorithm‐expression: t_order_item_$->{order_id % 2 + 1}
+
+
+      broadcast-tables: area  # 全局表  （广播表）
+      binding-tables: t_order,t_order_item
+      master-slave-rules:
+        m1:
+          master-data-source-name: ds0
+          slave-data-source-names: s1
+          load-balance-algorithm-type: round_robin
+    ## 读写分离配置
+      #masterslave:
+      #load-balance-algorithm-type: round_robin
+      #name: m1
+      #master-data-source-name: ds0
+      #slave-data-source-names: s1
+    props:
+      sql:
+        show: true
+
+#日志打印
+logging:
+  level:
+    root: info
+    com.mp.mapper: trace
+  pattern:
+    console: '%p%m%n'
+
+
+mybatis-plus:
+  mapper-locations: classpath:/mapper/*.xml
+  #实体扫描，多个package用逗号或者分号分隔
+  typeAliasesPackage: com.mp.entity
+  global-config:
+    #主键类型  0:"数据库ID自增", 1:"用户输入ID",2:"全局唯一ID (数字类型唯一ID)", 3:"全局唯一ID UUID";
+    id-type: 1
+    #字段策略 0:"忽略判断",1:"非 NULL 判断"),2:"非空判断"
+    field-strategy: 2
+    #驼峰下划线转换
+    db-column-underline: true
+    #刷新mapper 调试神器
+    refresh-mapper: true
+    #数据库大写下划线转换
+    #capital-mode: true
+    #序列接口实现类配置
+    #key-generator: com.baomidou.springboot.xxx
+    #逻辑删除配置
+    logic-delete-value: 0
+    logic-not-delete-value: 1
+    #自定义填充策略接口实现
+    #meta-object-handler: com.baomidou.springboot.xxx
+    #自定义SQL注入器
+    #sql-injector: com.baomidou.springboot.xxx
+  configuration:
+    map-underscore-to-camel-case: true
+    #cache-enabled: false
+

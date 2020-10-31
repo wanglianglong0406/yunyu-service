@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mp.dao.OrderCustomMapper">
+
+    <select id="selectOrderInfos" resultType="com.mp.bo.OrderBO" parameterType="long">
+        SELECT
+            o.price AS price,
+            o.status AS orderStatus,
+            o.order_id AS orderId,
+            o.user_id AS userId,
+            oi.num AS num,
+            oi.produce_name AS produceName
+        FROM
+            t_order_2 o
+        INNER JOIN t_order_item_2 oi ON o.order_id = oi.order_id
+        WHERE
+            o.order_id = #{orderId}
+
+    </select>
+
+
+</mapper>
